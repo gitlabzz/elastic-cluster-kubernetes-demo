@@ -1,0 +1,68 @@
+PUT _ilm/policy/test-rollover-logs
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "actions": {
+          "rollover": {
+            "max_size": "50GB",
+            "max_age": "30d"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+PUT _index_template/test_ds_template
+{
+  "index_patterns": ["test-data-stream*"],
+  "template": {
+    "settings": {
+      "index.lifecycle.name": "test-rollover-logs"
+    }
+  },
+  "data_stream": {}
+}
+
+
+POST test-data-stream/_doc
+{
+  "@timestamp": "2023-09-02T16:51:00.001+10:00",
+  "event": "test_event_1"
+}
+
+POST test-data-stream/_doc
+{
+  "@timestamp": "2023-09-02T16:53:00.001+10:00",
+  "event": "test_event_2"
+}
+
+
+
+
+GET _data_stream
+
+GET _cat/indices/test-data-stream*?v
+
+
+GET _cat/indices?v
+
+
+GET test-data-stream/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+
+POST /your-index-name/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+

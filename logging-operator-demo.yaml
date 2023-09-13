@@ -1,0 +1,59 @@
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: logging
+  namespace: eck
+spec:
+  fluentd: { }
+  fluentbit: { }
+  controlNamespace: eck
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Output
+metadata:
+  name: es-output
+  namespace: eck
+spec:
+  elasticsearch:
+    data_stream_enable: true
+    data_stream_ilm_name: test-rollover-logs
+    data_stream_name: nginx_ingress_container_logs
+    host: quickstart-es-http
+    port: 9200
+    scheme: https
+    ssl_verify: false
+    ssl_version: TLSv1_2
+
+    user: elastic
+
+    password:
+      valueFrom:
+        secretKeyRef:
+          name: quickstart-es-elastic-user
+          key: elastic
+
+    buffer:
+      timekey: 1m
+      timekey_wait: 30s
+      timekey_use_utc: true
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: es-flow
+  namespace: eck
+spec:
+  filters:
+    - tag_normaliser: { }
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: nginx
+  match:
+    - select:
+        labels:
+          run: nginx
+
+  localOutputRefs:
+    - es-output
