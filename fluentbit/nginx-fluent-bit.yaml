@@ -198,7 +198,8 @@ spec:
             name: fluent-bit-config
       containers:
         - name: fluent-bit
-          image: fluent/fluent-bit:1.9.6
+          #image: fluent/fluent-bit:1.9.6
+          image: fluent/fluent-bit:latest-debug
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 2020
