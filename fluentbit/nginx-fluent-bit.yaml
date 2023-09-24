@@ -1,3 +1,4 @@
+# https://braindose.blog/2022/07/18/monitor-and-analyze-nginx-ingress-controller-logs-on-kubernetes-using-elasticsearch-and-kibana/
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -55,10 +56,9 @@ data:
       HTTP_Server   off
       HTTP_Listen   0.0.0.0
       HTTP_Port     2020
-
+    
     @INCLUDE input-kubernetes.conf
     @INCLUDE filter-kubernetes.conf
-    @INCLUDE filter-nest.conf
     @INCLUDE filter-record-modifier.conf
     @INCLUDE output-elasticsearch.conf
     @INCLUDE output-stdout.conf
@@ -90,15 +90,6 @@ data:
       Keep_Log            Off
       Labels              Off
       Annotations         Off
-
-  filter-nest.conf: |
-    [FILTER]
-      Name nest
-      Match nginx.*
-      Operation nest
-      Wildcard coord.*
-      Nest_under coordinates
-      Remove_prefix coord.
 
   filter-record-modifier.conf: |
     [FILTER]
@@ -135,9 +126,12 @@ data:
   parsers.conf: |
     [PARSER]
       # https://rubular.com/r/V3W1DWyv5uFCfh
+      # You may notice we never define how to invoke the k8s-nginx-ingress parser. This is where we need to annotate the Nginx Ingress Controller PODs. 
+      # Instead of doing this at the POD level, we define this annotation at the Kubernetes Deployment CRD. We can do this by the following command.
+      # The annotation specifically instruct the Fluent Bit Kubernetes Filter to use the k8s-nginx-ingress parser for Nginx Ingress Controller Pods.
+      # kubectl patch deployment ingress-nginx-controller -n ingress-nginx --patch '{"spec": { "template": { "metadata": {"annotations": {"fluentbit.io/parser": "k8s-nginx-ingress" }}}}}' -n ingress-nginx
       Name        k8s-nginx-ingress
-      Format      regex      
-      # FOR LOG GENERATOR
+      Format      regex
       ###################### tested with nginx ingress controller logs #################################
       Regex       ^(?<real_client_ip>[^ ]*) - - \[(?<timestamp>[^\]]*)\] "(?<request_method>\S+)(?: +(?<request_path>[^\"]*?)(?: +HTTP\/(?<http_version>\S*)?)?)?" (?<status_code>[^ ]*) (?<response_size>[^ ]*) "(?<referrer>[^\"]*)" "(?<user_agent>[^\"]*)" (?<upstream_status>[^ ]*) (?<request_time>[^ ]*) \[(?<backend>[^\]]*)\] (\[\])? (?<backend_ip>[^ ]*) (?<backend_response_size>[^ ]*) (?<backend_response_time>[^ ]*) (?<backend_status>[^ ]*) (?<request_id>[^ ]*).*$
       ###################### tested with nginx ingress controller logs #################################
